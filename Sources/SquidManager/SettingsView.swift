@@ -318,12 +318,6 @@ private struct AboutTab: View {
         }
       } header: {
         Text("Updates")
-      } footer: {
-        Text("""
-          The app checks GitHub every six hours. With automatic updates on, it installs a new version \
-          and relaunches when no window is open. Squid keeps running through the relaunch.
-          """)
-        .font(.caption).foregroundStyle(.secondary)
       }
 
       Section {
