@@ -1,0 +1,24 @@
+{
+    "configurations": [
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:SquidManager}",
+            "name": "Debug SquidManager",
+            "target": "SquidManager",
+            "configuration": "debug",
+            "preLaunchTask": "swift: Build Debug SquidManager"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:SquidManager}",
+            "name": "Release SquidManager",
+            "target": "SquidManager",
+            "configuration": "release",
+            "preLaunchTask": "swift: Build Release SquidManager"
+        }
+    ]
+}

@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "f=$(jq -r '.tool_input.file_path // .tool_response.filePath'); case \"$f\" in \"$CLAUDE_PROJECT_DIR\"/*.swift) out=$(\"$CLAUDE_PROJECT_DIR\"/scripts/format.sh --paths \"$f\" 2>&1) || { echo \"$out\" | rg '\\.swift:[0-9]+:[0-9]+: (error|warning):' >&2 || echo \"$out\" | tail -20 >&2; exit 2; } ;; esac",
+            "timeout": 120,
+            "statusMessage": "Formatting Swift (Airbnb style)"
+          }
+        ]
+      }
+    ]
+  }
+}

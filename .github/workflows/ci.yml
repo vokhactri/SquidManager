@@ -1,0 +1,19 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      # The config test runs `squid -k parse` and skips itself without squid.
+      - run: brew install squid
+      - run: scripts/test.sh
+      - run: scripts/format.sh --lint
+      - run: scripts/build-app.sh

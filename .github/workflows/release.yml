@@ -1,0 +1,26 @@
+name: Release
+
+# Push a tag such as v0.2.0 to publish a release. Installed copies of the app
+# pick it up from the latest release within six hours.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - run: brew install squid
+      - run: scripts/test.sh
+      - run: VERSION="$GITHUB_REF_NAME" scripts/build-app.sh
+      # The updater downloads this exact file name.
+      - run: ditto -c -k --keepParent build/SquidManager.app build/SquidManager.zip
+      - run: gh release create "$GITHUB_REF_NAME" build/SquidManager.zip --title "$GITHUB_REF_NAME" --generate-notes
+        env:
+          GH_TOKEN: ${{ github.token }}
