@@ -174,8 +174,9 @@ final class Updater: ObservableObject {
 
   private func relaunch(_ app: URL, inBackground: Bool) {
     // A detached shell waits for this process to exit, then opens the new bundle.
+    // -n launches this exact copy even if another copy with the same bundle ID is running.
     let args = inBackground ? " --args \(Self.backgroundArgument)" : ""
-    let script = "while /bin/kill -0 \(getpid()) 2>/dev/null; do /bin/sleep 0.2; done; /usr/bin/open \"$0\"\(args)"
+    let script = "while /bin/kill -0 \(getpid()) 2>/dev/null; do /bin/sleep 0.2; done; /usr/bin/open -n \"$0\"\(args)"
     let p = Process()
     p.executableURL = URL(fileURLWithPath: "/bin/sh")
     p.arguments = ["-c", script, app.path]
