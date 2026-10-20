@@ -332,6 +332,8 @@ private struct AboutTab: View {
       }
     }
     .formStyle(.grouped)
+    // Same reason as AccessTab.
+    .frame(height: 420)
   }
 
   // MARK: Private
