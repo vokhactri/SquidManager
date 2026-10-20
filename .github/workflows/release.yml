@@ -19,6 +19,7 @@ jobs:
       - run: brew install squid
       - run: scripts/test.sh
       - run: VERSION="$GITHUB_REF_NAME" scripts/build-app.sh
+      - run: scripts/smoke-test.sh
       # The updater downloads this exact file name.
       - run: ditto -c -k --keepParent build/SquidManager.app build/SquidManager.zip
       - run: gh release create "$GITHUB_REF_NAME" build/SquidManager.zip --title "$GITHUB_REF_NAME" --generate-notes

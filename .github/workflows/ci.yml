@@ -22,3 +22,4 @@ jobs:
       - run: scripts/test.sh
       - run: scripts/format.sh --lint
       - run: scripts/build-app.sh
+      - run: scripts/smoke-test.sh
