@@ -11,7 +11,7 @@ I use it to turn a Mac at home into a residential proxy. Squid runs as a launchd
 
 ## Install
 
-Download `SquidManager.zip` from the [latest release](https://github.com/vokhactri/SquidManager/releases/latest), unzip it and move SquidManager.app to `/Applications`. The app is signed ad hoc, not with a Developer ID, so Gatekeeper blocks a copy downloaded with a browser. Clear the quarantine flag once:
+Download `SquidManager.dmg` from the [latest release](https://github.com/vokhactri/SquidManager/releases/latest), open it and drag SquidManager.app onto the Applications folder. The app is signed ad hoc, not with a Developer ID, so Gatekeeper blocks a copy downloaded with a browser. Clear the quarantine flag once:
 
 ```sh
 xattr -dr com.apple.quarantine /Applications/SquidManager.app
@@ -30,6 +30,7 @@ Squid runs under launchd, so the proxy keeps serving while the app relaunches.
 ```sh
 scripts/build-app.sh            # creates build/SquidManager.app
 scripts/build-app.sh --install  # also copies it to /Applications
+scripts/make-dmg.sh             # packs the built app into build/SquidManager.dmg
 scripts/test.sh                 # runs the tests, including `squid -k parse` on generated configs
 scripts/smoke-test.sh           # opens the built app for 5 seconds and fails if it exits
 scripts/format.sh               # formats and lints the code to the Airbnb Swift Style Guide
@@ -45,7 +46,7 @@ git tag v0.2.0
 git push origin v0.2.0
 ```
 
-The Release workflow runs the tests, builds the app, checks that it starts as version 0.2.0 and attaches `SquidManager.zip` to a new GitHub release. Installed copies pick it up within six hours. The CI workflow runs the tests, the linter and a build on every push to `main` and on pull requests.
+The Release workflow runs the tests, builds the app, checks that it starts as version 0.2.0 and attaches `SquidManager.dmg` and `SquidManager.zip` to a new GitHub release. The DMG is for first installs. Installed copies download the zip within six hours. The CI workflow runs the tests, the linter and a build on every push to `main` and on pull requests.
 
 Xcode is not required, only the Command Line Tools. Keep it that way when changing the UI. In the macOS 27 SDK, `@State` is a macro, and its plugin (`SwiftUIMacros`) ships only with Xcode. Views keep local state in a small `ObservableObject` held by `@StateObject` instead. The same applies to `#Preview`, `@Previewable` and `@Entry`.
 
