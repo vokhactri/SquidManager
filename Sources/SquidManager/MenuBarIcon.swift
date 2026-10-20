@@ -37,10 +37,16 @@ final class MenuBarIcon: ObservableObject {
   private var timer: Timer?
   private var tick = 0
 
+  /// `Bundle.module` looks for the resource bundle at the root of the .app, where codesign forbids it,
+  /// and then at the absolute `.build` path of the machine that compiled the app. build-app.sh puts the
+  /// bundle in Contents/Resources, so look there first and fall back to `Bundle.module` for `swift run`.
+  private static let resources = Bundle.main.url(forResource: "SquidManager_SquidManager", withExtension: "bundle")
+    .flatMap(Bundle.init(url:)) ?? Bundle.module
+
   private static func render(fraction: CGFloat) -> NSImage {
     let image = NSImage(size: NSSize(width: 18, height: 18), flipped: false) { rect in
       guard
-        let url = Bundle.module.url(forResource: "squid", withExtension: "svg"),
+        let url = resources.url(forResource: "squid", withExtension: "svg"),
         let squid = NSImage(contentsOf: url)
       else { return false }
       squid.draw(in: rect, from: .zero, operation: .sourceOver, fraction: fraction)
