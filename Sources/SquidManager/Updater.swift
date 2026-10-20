@@ -117,16 +117,18 @@ final class Updater: ObservableObject {
     return try FileManager.default.replaceItemAt(app, withItemAt: new) ?? app
   }
 
-  /// Checks now, then every six hours.
+  /// Checks GitHub ten seconds after launch and then every six hours.
   func start() {
     guard timer == nil else { return }
-    timer = Timer.scheduledTimer(withTimeInterval: 6 * 60 * 60, repeats: true) { [weak self] _ in
-      Task { @MainActor in await self?.checkInBackground() }
+    // A minute is short enough to install soon after the user closes the last window,
+    // and only every sixth hour reaches the network.
+    timer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
+      Task { @MainActor in await self?.tick() }
     }
     Task {
       // Give the menu bar and squid's status a moment before going to the network.
       try? await Task.sleep(for: .seconds(10))
-      await checkInBackground()
+      await tick()
     }
   }
 
@@ -158,10 +160,14 @@ final class Updater: ObservableObject {
 
   private static let autoInstallKey = "installUpdatesAutomatically"
 
-  private var timer: Timer?
+  private static let checkInterval: TimeInterval = 6 * 60 * 60
 
-  private func checkInBackground() async {
-    if available == nil {
+  private var timer: Timer?
+  private var lastCheck = Date.distantPast
+
+  private func tick() async {
+    if available == nil, Date.now.timeIntervalSince(lastCheck) >= Self.checkInterval {
+      lastCheck = .now
       // A failed scheduled check stays quiet. The next one may succeed.
       let previous = state
       await check()

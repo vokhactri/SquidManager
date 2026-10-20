@@ -21,7 +21,7 @@ Later versions come through the app's own updater, which doesn't set the flag.
 
 ## Updates
 
-The app checks the latest GitHub release at launch and every six hours. When it finds a newer version, it downloads `SquidManager.zip`, compares its SHA-256 with the digest GitHub reports, swaps the bundle in place and relaunches into the menu bar. It holds off while a window is open or squid is starting or stopping. The menu and the main window show an Install button in that case. Settings > About turns automatic installs off and links to the releases page.
+The app checks the latest GitHub release at launch and every six hours. When it finds a newer version, it downloads `SquidManager.zip`, compares its SHA-256 with the digest GitHub reports, swaps the bundle in place and relaunches into the menu bar. It holds off while a window is open or squid is starting or stopping, and installs within a minute of that ending. Until then, the menu and the main window show an Install button. Settings > About turns automatic installs off and links to the releases page.
 
 Squid runs under launchd, so the proxy keeps serving while the app relaunches.
 
