@@ -31,7 +31,7 @@ struct SquidManagerApp: App {
     .defaultSize(width: 860, height: 520)
 
     Settings {
-      SettingsView().environmentObject(squid).environmentObject(updater)
+      SettingsView(updater: updater).environmentObject(squid)
     }
 
     MenuBarExtra {

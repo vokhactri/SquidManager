@@ -3,7 +3,7 @@ import SwiftUI
 
 // MARK: - SettingsTab
 
-enum SettingsTab: String {
+enum SettingsTab: String, CaseIterable {
   case general
   case access
   case parent
@@ -12,8 +12,49 @@ enum SettingsTab: String {
   case advanced
   case about
 
+  // MARK: Internal
+
   /// The menu writes here before opening Settings, so About in the menu lands on the About tab.
   static let defaultsKey = "settingsTab"
+
+  var title: String {
+    switch self {
+    case .general: "General"
+    case .access: "Access"
+    case .parent: "Parent"
+    case .cache: "Cache"
+    case .template: "Template"
+    case .advanced: "Advanced"
+    case .about: "About"
+    }
+  }
+
+  // MARK: Fileprivate
+
+  fileprivate var systemImage: String {
+    switch self {
+    case .general: "gearshape"
+    case .access: "person.2"
+    case .parent: "arrow.up.forward.circle"
+    case .cache: "internaldrive"
+    case .template: "doc.text"
+    case .advanced: "wrench.and.screwdriver"
+    case .about: "info.circle"
+    }
+  }
+
+  /// Grouped Forms scroll, so they have no fitting height to size the window from. Each tab gets a fixed one.
+  fileprivate var contentHeight: CGFloat {
+    switch self {
+    case .general: 362
+    case .access: 520
+    case .parent: 440
+    case .cache: 320
+    case .template: 443
+    case .advanced: 320
+    case .about: 420
+    }
+  }
 }
 
 // MARK: - SettingsView
@@ -23,7 +64,9 @@ struct SettingsView: View {
   // MARK: Internal
 
   @EnvironmentObject var squid: SquidController
-  @EnvironmentObject var updater: Updater
+
+  /// The tabs observe this. SettingsView only hands it on, so it doesn't subscribe.
+  let updater: Updater
 
   var body: some View {
     VStack(spacing: 0) {
@@ -40,7 +83,7 @@ struct SettingsView: View {
       }
     }
     .frame(width: 580)
-    .environmentObject(squid)
+    .navigationTitle(tab.title)
   }
 
   // MARK: Private
@@ -50,6 +93,7 @@ struct SettingsView: View {
 
 // MARK: - SettingsTabs
 
+/// An NSTabViewController in toolbar style, so switching tabs doesn't rebuild the toolbar like SwiftUI's TabView does.
 private struct SettingsTabs: NSViewControllerRepresentable {
 
   // MARK: Internal
@@ -59,24 +103,12 @@ private struct SettingsTabs: NSViewControllerRepresentable {
   let squid: SquidController
   let updater: Updater
 
-  func makeNSViewController(context _: Context) -> SettingsTabsController {
+  func makeNSViewController(context: Context) -> SettingsTabsController {
     let controller = SettingsTabsController()
     controller.tabStyle = .toolbar
     controller.transitionOptions = []
-    controller.tabViewItems = [
-      item(.general, title: "General", image: "gearshape", content: GeneralTab()),
-      item(.access, title: "Access", image: "person.2", content: AccessTab()),
-      item(.parent, title: "Parent", image: "arrow.up.forward.circle", content: ParentTab()),
-      item(.cache, title: "Cache", image: "internaldrive", content: CacheTab()),
-      item(.template, title: "Template", image: "doc.text", content: TemplateTab()),
-      item(.advanced, title: "Advanced", image: "wrench.and.screwdriver", content: AdvancedTab()),
-      item(.about, title: "About", image: "info.circle", content: AboutTab()),
-    ]
-    controller.selectedTabViewItemIndex = controller.tabViewItems
-      .firstIndex { $0.identifier as? String == selection.rawValue } ?? 0
-    controller.selectionDidChange = { tab in
-      if selection != tab { selection = tab }
-    }
+    controller.tabViewItems = SettingsTab.allCases.map(item)
+    updateNSViewController(controller, context: context)
     return controller
   }
 
@@ -84,7 +116,7 @@ private struct SettingsTabs: NSViewControllerRepresentable {
     controller.selectionDidChange = { tab in
       if selection != tab { selection = tab }
     }
-    let index = controller.tabViewItems.firstIndex { $0.identifier as? String == selection.rawValue } ?? 0
+    let index = SettingsTab.allCases.firstIndex(of: selection) ?? 0
     if controller.selectedTabViewItemIndex != index {
       controller.selectedTabViewItemIndex = index
     }
@@ -92,17 +124,30 @@ private struct SettingsTabs: NSViewControllerRepresentable {
 
   // MARK: Private
 
-  private func item(_ tab: SettingsTab, title: String, image: String, content: some View) -> NSTabViewItem {
-    let controller = NSHostingController(rootView: content
+  private func item(_ tab: SettingsTab) -> NSTabViewItem {
+    let controller = NSHostingController(rootView: content(tab)
       .environmentObject(squid)
-      .environmentObject(updater)
-      .frame(width: 580, height: tab.contentHeight))
-    controller.title = title
+      .environmentObject(updater))
+    // SettingsView owns the window size. The hosting controller would otherwise push its own size constraints.
+    controller.sizingOptions = []
     let item = NSTabViewItem(viewController: controller)
     item.identifier = tab.rawValue
-    item.label = title
-    item.image = NSImage(systemSymbolName: image, accessibilityDescription: title)
+    item.label = tab.title
+    item.image = NSImage(systemSymbolName: tab.systemImage, accessibilityDescription: tab.title)
     return item
+  }
+
+  @ViewBuilder
+  private func content(_ tab: SettingsTab) -> some View {
+    switch tab {
+    case .general: GeneralTab()
+    case .access: AccessTab()
+    case .parent: ParentTab()
+    case .cache: CacheTab()
+    case .template: TemplateTab()
+    case .advanced: AdvancedTab()
+    case .about: AboutTab()
+    }
   }
 }
 
@@ -111,33 +156,17 @@ private struct SettingsTabs: NSViewControllerRepresentable {
 private final class SettingsTabsController: NSTabViewController {
   var selectionDidChange: ((SettingsTab) -> Void)?
 
-  override func viewDidAppear() {
-    super.viewDidAppear()
-    guard let window = view.window else { return }
-    window.toolbarStyle = .preference
-    window.titlebarSeparatorStyle = .line
-    window.title = tabView.selectedTabViewItem?.label ?? "Settings"
+  override func viewWillAppear() {
+    super.viewWillAppear()
+    // Set before the first frame is drawn, so the window doesn't open in the default toolbar style and then switch.
+    view.window?.toolbarStyle = .preference
+    view.window?.titlebarSeparatorStyle = .line
   }
 
   override func tabView(_ tabView: NSTabView, didSelect tabViewItem: NSTabViewItem?) {
     super.tabView(tabView, didSelect: tabViewItem)
-    view.window?.title = tabViewItem?.label ?? "Settings"
     if let rawValue = tabViewItem?.identifier as? String, let tab = SettingsTab(rawValue: rawValue) {
       selectionDidChange?(tab)
-    }
-  }
-}
-
-extension SettingsTab {
-  fileprivate var contentHeight: CGFloat {
-    switch self {
-    case .general: 362
-    case .access: 520
-    case .parent: 440
-    case .cache: 320
-    case .template: 443
-    case .advanced: 320
-    case .about: 420
     }
   }
 }
@@ -215,8 +244,6 @@ private struct AccessTab: View {
       }
     }
     .formStyle(.grouped)
-    // A grouped Form scrolls, so the Settings window can't size this tab to its content.
-    .frame(height: 520)
   }
 
   // MARK: Private
@@ -268,8 +295,6 @@ private struct ParentTab: View {
       .disabled(!squid.settings.useParent)
     }
     .formStyle(.grouped)
-    // Same reason as AccessTab.
-    .frame(height: 440)
   }
 }
 
@@ -311,7 +336,7 @@ private struct TemplateTab: View {
         .font(.caption).foregroundStyle(.secondary)
       TextEditor(text: $squid.settings.template)
         .font(.system(.body, design: .monospaced))
-        .frame(height: 360)
+        .frame(maxHeight: .infinity)
       HStack {
         Button("Reset to Default") { squid.settings.template = SquidConfig.defaultTemplate }
           .disabled(squid.settings.template == SquidConfig.defaultTemplate)
@@ -414,8 +439,6 @@ private struct AboutTab: View {
       }
     }
     .formStyle(.grouped)
-    // Same reason as AccessTab.
-    .frame(height: 420)
   }
 
   // MARK: Private
