@@ -67,8 +67,7 @@ struct SettingsView: View {
           Button("Restart Squid") { Task { await squid.restart() } }
             .disabled(squid.activity != nil)
         }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 12)
+        .padding(20)
       }
     }
     .frame(width: 580)
