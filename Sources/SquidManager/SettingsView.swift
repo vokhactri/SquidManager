@@ -172,12 +172,12 @@ private final class SettingsTabsController: NSTabViewController {
 
   override func viewDidAppear() {
     super.viewDidAppear()
-    focusFirstInput()
+    deselectFocusedText()
   }
 
   override func tabView(_ tabView: NSTabView, didSelect tabViewItem: NSTabViewItem?) {
     super.tabView(tabView, didSelect: tabViewItem)
-    focusFirstInput()
+    deselectFocusedText()
     // Loading the view selects the first tab before the saved one. Only report selections made once it's on screen.
     guard tabView.window != nil else { return }
     if let rawValue = tabViewItem?.identifier as? String, let tab = SettingsTab(rawValue: rawValue) {
@@ -187,34 +187,14 @@ private final class SettingsTabsController: NSTabViewController {
 
   // MARK: Private
 
-  /// Focus the first enabled text input of the tab, without selecting its text. NSTabView picks the first key view,
-  /// which can be a list, and selects all of a field's text, which reads as highlighted.
-  private func focusFirstInput() {
-    guard let window = view.window, let content = tabView.selectedTabViewItem?.view else { return }
-    if !(window.firstResponder is NSTextView) {
-      // With no enabled field, such as Parent with forwarding off, focus nothing rather than a disabled list.
-      window.makeFirstResponder(topmostEditableField(in: content))
-    }
-    guard let editor = window.firstResponder as? NSTextView else { return }
+  /// NSTabView focuses the first key view of a tab, and when that is a text field it selects all of the text, which
+  /// reads as highlighted. Keep the focus but drop the selection.
+  private func deselectFocusedText() {
+    guard let editor = view.window?.firstResponder as? NSTextView else { return }
     // The caret goes to the end of a field, or to the top of the template editor.
     let location = editor.isFieldEditor ? editor.string.utf16.count : 0
     editor.setSelectedRange(NSRange(location: location, length: 0))
     editor.scrollRangeToVisible(editor.selectedRange())
-  }
-
-  private func topmostEditableField(in view: NSView) -> NSTextField? {
-    let fields = view.subviews.flatMap { subview -> [NSTextField] in
-      if let field = subview as? NSTextField {
-        return field.isEditable && field.isEnabled && !field.isHidden ? [field] : []
-      }
-      return topmostEditableField(in: subview).map { [$0] } ?? []
-    }
-    // Window coordinates grow upward, so the topmost field has the largest maxY.
-    return fields.max { a, b in
-      let frameA = a.convert(a.bounds, to: nil)
-      let frameB = b.convert(b.bounds, to: nil)
-      return frameA.maxY == frameB.maxY ? frameA.minX > frameB.minX : frameA.maxY < frameB.maxY
-    }
   }
 }
 
