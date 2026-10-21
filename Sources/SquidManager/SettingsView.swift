@@ -184,6 +184,41 @@ private final class SettingsTabsController: NSTabViewController {
   }
 }
 
+// MARK: - FieldWidth
+
+/// Text field widths sized to what goes in them.
+private enum FieldWidth {
+  /// Ports and sizes such as "512 KB".
+  static let short: CGFloat = 80
+  /// Hostnames, addresses and user names.
+  static let medium: CGFloat = 200
+  /// The user name and password side by side when adding a proxy user.
+  static let credential: CGFloat = 120
+  /// File paths.
+  static let long: CGFloat = 280
+}
+
+// MARK: - FieldRow
+
+/// A Form row whose field is only as wide as its values need. Grouped Forms ignore a frame set on a labeled field.
+private struct FieldRow<Field: View>: View {
+  init(_ title: String, width: CGFloat, @ViewBuilder field: () -> Field) {
+    self.title = title
+    self.width = width
+    self.field = field()
+  }
+
+  let title: String
+  let width: CGFloat
+  @ViewBuilder let field: Field
+
+  var body: some View {
+    LabeledContent(title) {
+      field.labelsHidden().frame(width: width)
+    }
+  }
+}
+
 // MARK: - SectionButtons
 
 /// Buttons in a grouped Form section footer, right-aligned with the section's box.
@@ -209,9 +244,15 @@ private struct GeneralTab: View {
 
   var body: some View {
     Form {
-      TextField("HTTP port", value: $squid.settings.port, format: .number.grouping(.never))
-      TextField("Listen address", text: $squid.settings.listenAddress, prompt: Text("All interfaces"))
-      TextField("Visible hostname", text: $squid.settings.visibleHostname, prompt: Text("This Mac's hostname"))
+      FieldRow("HTTP port", width: FieldWidth.short) {
+        TextField("HTTP port", value: $squid.settings.port, format: .number.grouping(.never))
+      }
+      FieldRow("Listen address", width: FieldWidth.medium) {
+        TextField("Listen address", text: $squid.settings.listenAddress, prompt: Text("All interfaces"))
+      }
+      FieldRow("Visible hostname", width: FieldWidth.medium) {
+        TextField("Visible hostname", text: $squid.settings.visibleHostname, prompt: Text("This Mac's hostname"))
+      }
       Section {
         Toggle("Hide proxy headers (Via, X-Forwarded-For, Cache-Control)", isOn: $squid.settings.anonymize)
         Toggle("Log every request to access.log", isOn: $squid.settings.logRequests)
@@ -248,13 +289,18 @@ private struct AccessTab: View {
           ForEach(squid.users, id: \.self) { Text($0) }
         }
         .frame(height: 90)
-        HStack {
-          TextField("User", text: $form.newUser)
-          SecureField("Password", text: $form.newPassword)
-          Button("Add / Update") { addUser() }
-            .disabled(form.newUser.isEmpty || form.newPassword.isEmpty)
-          Button("Remove", action: removeUser)
-            .disabled(form.selectedUser == nil)
+        LabeledContent("New user") {
+          HStack {
+            TextField("User", text: $form.newUser, prompt: Text("User"))
+              .frame(width: FieldWidth.credential)
+            SecureField("Password", text: $form.newPassword, prompt: Text("Password"))
+              .frame(width: FieldWidth.credential)
+            Button("Add / Update") { addUser() }
+              .disabled(form.newUser.isEmpty || form.newPassword.isEmpty)
+            Button("Remove", action: removeUser)
+              .disabled(form.selectedUser == nil)
+          }
+          .labelsHidden()
         }
         if let error = form.error { Text(error).foregroundStyle(.red).font(.caption) }
       } header: {
@@ -302,10 +348,18 @@ private struct ParentTab: View {
     Form {
       Toggle("Forward requests through a parent proxy", isOn: $squid.settings.useParent)
       Group {
-        TextField("Host", text: $squid.settings.parentHost)
-        TextField("Port", value: $squid.settings.parentPort, format: .number.grouping(.never))
-        TextField("User", text: $squid.settings.parentUser, prompt: Text("Optional"))
-        SecureField("Password", text: $squid.settings.parentPassword, prompt: Text("Optional"))
+        FieldRow("Host", width: FieldWidth.medium) {
+          TextField("Host", text: $squid.settings.parentHost)
+        }
+        FieldRow("Port", width: FieldWidth.short) {
+          TextField("Port", value: $squid.settings.parentPort, format: .number.grouping(.never))
+        }
+        FieldRow("User", width: FieldWidth.medium) {
+          TextField("User", text: $squid.settings.parentUser, prompt: Text("Optional"))
+        }
+        FieldRow("Password", width: FieldWidth.medium) {
+          SecureField("Password", text: $squid.settings.parentPassword, prompt: Text("Optional"))
+        }
         Section("Go direct for these hosts and domains") {
           StringListEditor(items: $squid.settings.directHosts, placeholder: ".example.com")
         }
@@ -324,10 +378,18 @@ private struct CacheTab: View {
   var body: some View {
     Form {
       Section {
-        TextField("Disk cache (MB)", value: $squid.settings.cacheSizeMB, format: .number.grouping(.never))
-        TextField("Largest object on disk", text: $squid.settings.maxObjectSize)
-        TextField("Memory cache", text: $squid.settings.memoryCacheSize)
-        TextField("Largest object in memory", text: $squid.settings.memoryMaxObjectSize)
+        FieldRow("Disk cache (MB)", width: FieldWidth.short) {
+          TextField("Disk cache (MB)", value: $squid.settings.cacheSizeMB, format: .number.grouping(.never))
+        }
+        FieldRow("Largest object on disk", width: FieldWidth.short) {
+          TextField("Largest object on disk", text: $squid.settings.maxObjectSize)
+        }
+        FieldRow("Memory cache", width: FieldWidth.short) {
+          TextField("Memory cache", text: $squid.settings.memoryCacheSize)
+        }
+        FieldRow("Largest object in memory", width: FieldWidth.short) {
+          TextField("Largest object in memory", text: $squid.settings.memoryMaxObjectSize)
+        }
       } footer: {
         SectionButtons {
           Button("Flush Cache") { Task { await squid.flushCache() } }
@@ -372,12 +434,16 @@ private struct AdvancedTab: View {
 
   var body: some View {
     Form {
-      TextField(
-        "squid binary",
-        text: $squid.settings.squidPath,
-        prompt: Text(squid.squidBinary ?? "/opt/homebrew/sbin/squid")
-      )
-      TextField("DNS servers", text: $squid.settings.dnsServers, prompt: Text("System default"))
+      FieldRow("squid binary", width: FieldWidth.long) {
+        TextField(
+          "squid binary",
+          text: $squid.settings.squidPath,
+          prompt: Text(squid.squidBinary ?? "/opt/homebrew/sbin/squid")
+        )
+      }
+      FieldRow("DNS servers", width: FieldWidth.medium) {
+        TextField("DNS servers", text: $squid.settings.dnsServers, prompt: Text("System default"))
+      }
       Section("Files") {
         fileRow("Config and users", squid.paths.root)
         fileRow("Logs", squid.paths.logs)
@@ -501,15 +567,19 @@ struct StringListEditor: View {
       ForEach(items, id: \.self) { Text($0).font(.system(.body, design: .monospaced)) }
     }
     .frame(height: 100)
-    HStack {
-      TextField("New entry", text: $form.draft, prompt: Text(placeholder))
-        .onSubmit(add)
-      Button("Add", action: add).disabled(form.draft.trimmingCharacters(in: .whitespaces).isEmpty)
-      Button("Remove") {
-        items.removeAll { $0 == form.selection }
-        form.selection = nil
+    LabeledContent("New entry") {
+      HStack {
+        TextField("New entry", text: $form.draft, prompt: Text(placeholder))
+          .labelsHidden()
+          .frame(width: FieldWidth.medium)
+          .onSubmit(add)
+        Button("Add", action: add).disabled(form.draft.trimmingCharacters(in: .whitespaces).isEmpty)
+        Button("Remove") {
+          items.removeAll { $0 == form.selection }
+          form.selection = nil
+        }
+        .disabled(form.selection == nil)
       }
-      .disabled(form.selection == nil)
     }
   }
 
