@@ -446,12 +446,23 @@ private struct AdvancedTab: View {
 
   var body: some View {
     Form {
-      FieldRow("squid binary", width: FieldWidth.medium) {
-        TextField(
-          "squid binary",
-          text: $squid.settings.squidPath,
-          prompt: Text(squid.squidBinary ?? "/opt/homebrew/sbin/squid")
-        )
+      LabeledContent("squid binary") {
+        HStack {
+          if let path = squid.squidBinary {
+            Text(path).foregroundStyle(.secondary).textSelection(.enabled)
+              .lineLimit(1).truncationMode(.middle)
+              // Without a cap, a long path pushes the buttons onto a second line.
+              .frame(maxWidth: FieldWidth.medium, alignment: .trailing)
+              .help(path)
+          } else {
+            Text("Not found").foregroundStyle(.red)
+          }
+          if !squid.settings.squidPath.isEmpty {
+            Button("Use Detected") { squid.settings.squidPath = "" }
+              .disabled(squid.detectedSquid == nil)
+          }
+          Button("Choose…", action: chooseSquid)
+        }
       }
       FieldRow("DNS servers", width: FieldWidth.medium) {
         TextField("DNS servers", text: $squid.settings.dnsServers, prompt: Text("1.1.1.1 8.8.8.8"))
@@ -468,6 +479,15 @@ private struct AdvancedTab: View {
 
   // MARK: Private
 
+  private func chooseSquid() {
+    let start = squid.squidBinary ?? squid.detectedSquid ?? "/opt/homebrew/sbin/squid"
+    guard let path = SquidPicker().choose(startingAt: URL(fileURLWithPath: start).deletingLastPathComponent()) else {
+      return
+    }
+    // Picking the detected squid goes back to detecting, so a reinstall elsewhere is still found.
+    squid.settings.squidPath = path == squid.detectedSquid ? "" : path
+  }
+
   private func fileRow(_ title: String, _ url: URL) -> some View {
     HStack {
       Text(title)
@@ -477,6 +497,25 @@ private struct AdvancedTab: View {
       Button { NSWorkspace.shared.open(url) } label: { Image(systemName: "folder") }
         .buttonStyle(.borderless)
     }
+  }
+}
+
+// MARK: - SquidPicker
+
+/// An open panel that only lets the user pick executable files. ⌘⇧G in the panel takes a typed path.
+private final class SquidPicker: NSObject, NSOpenSavePanelDelegate {
+  func choose(startingAt directory: URL) -> String? {
+    let panel = NSOpenPanel()
+    panel.canChooseDirectories = false
+    panel.directoryURL = directory
+    panel.delegate = self
+    guard panel.runModal() == .OK else { return nil }
+    return panel.url?.path
+  }
+
+  func panel(_: Any, shouldEnable url: URL) -> Bool {
+    // Directories pass too, since they have the execute bit, so the user can still browse into them.
+    FileManager.default.isExecutableFile(atPath: url.path)
   }
 }
 

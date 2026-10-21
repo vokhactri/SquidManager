@@ -76,12 +76,16 @@ final class SquidController: ObservableObject {
     return Self.homebrewVersion(current) ?? current
   }
 
+  /// The squid the user chose in Settings, or the detected one when they haven't chosen.
   var squidBinary: String? {
     let custom = settings.squidPath.trimmingCharacters(in: .whitespaces)
-    let candidates = custom.isEmpty
-      ? ["/opt/homebrew/sbin/squid", "/usr/local/sbin/squid", "/usr/local/squid/sbin/squid"]
-      : [custom]
-    return candidates.first { FileManager.default.isExecutableFile(atPath: $0) }
+    guard custom.isEmpty else { return FileManager.default.isExecutableFile(atPath: custom) ? custom : nil }
+    return detectedSquid
+  }
+
+  /// squid in a usual install location, or on the login shell's PATH.
+  var detectedSquid: String? {
+    Self.installPaths.first { FileManager.default.isExecutableFile(atPath: $0) } ?? Self.shellSquid
   }
 
   /// `basic_ncsa_auth` sits in `libexec` next to the real (symlink-resolved) `sbin/squid`.
@@ -202,6 +206,30 @@ final class SquidController: ObservableObject {
   }
 
   // MARK: Private
+
+  /// Homebrew on Apple silicon and on Intel, a source build, and MacPorts.
+  private static let installPaths = [
+    "/opt/homebrew/sbin/squid",
+    "/usr/local/sbin/squid",
+    "/usr/local/squid/sbin/squid",
+    "/opt/local/sbin/squid",
+  ]
+
+  /// An app opened from Finder gets a PATH without Homebrew or MacPorts, so ask the login shell.
+  /// Looked up once, because it starts a shell.
+  private static let shellSquid: String? = {
+    let shell = Process()
+    shell.executableURL = URL(fileURLWithPath: ProcessInfo.processInfo.environment["SHELL"] ?? "/bin/zsh")
+    shell.arguments = ["-lc", "command -v squid"]
+    let output = Pipe()
+    shell.standardOutput = output
+    shell.standardError = FileHandle.nullDevice
+    guard (try? shell.run()) != nil else { return nil }
+    let data = output.fileHandleForReading.readDataToEndOfFile()
+    shell.waitUntilExit()
+    let path = String(decoding: data, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)
+    return FileManager.default.isExecutableFile(atPath: path) ? path : nil
+  }()
 
   private let defaultsKey = "settings"
   private var timer: Timer?
