@@ -116,6 +116,8 @@ private struct SettingsTabs: NSViewControllerRepresentable {
 
   private func item(_ tab: SettingsTab) -> NSTabViewItem {
     let controller = NSHostingController(rootView: content(tab)
+      // Grouped Forms draw text fields without a border, so they read as plain values.
+      .textFieldStyle(.roundedBorder)
       .onScrollGeometryChange(for: CGFloat.self) { geometry in
         geometry.contentSize.height + geometry.contentInsets.top + geometry.contentInsets.bottom
       } action: { _, height in
