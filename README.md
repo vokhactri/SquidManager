@@ -11,19 +11,17 @@ I use it to turn a Mac at home into a residential proxy. Squid runs as a launchd
 
 ## Install
 
-Download `SquidManager.dmg` from the [latest release](https://github.com/vokhactri/SquidManager/releases/latest), open it and drag SquidManager.app onto the Applications folder. The app is signed ad hoc, not with a Developer ID, so Gatekeeper blocks a copy downloaded with a browser. Clear the quarantine flag once:
+Choose a way to install:
+
+- DMG: Download `SquidManager.dmg` from the [latest release](https://github.com/vokhactri/SquidManager/releases/latest), open it and drag SquidManager.app into Applications.
+- ZIP: Download `SquidManager.zip` from the same release, extract it and move SquidManager.app into Applications.
+- From source: Clone this repo and run `scripts/build-app.sh --install`. See [Build](#build) for details.
+
+The app is signed ad hoc, so Gatekeeper may block a downloaded copy. Clear the quarantine flag once:
 
 ```sh
 xattr -dr com.apple.quarantine /Applications/SquidManager.app
 ```
-
-Later versions come through the app's own updater, which doesn't set the flag.
-
-## Updates
-
-The app checks the latest GitHub release at launch and every six hours. When it finds a newer version, it downloads `SquidManager.zip`, compares its SHA-256 with the digest GitHub reports, swaps the bundle in place and relaunches into the menu bar. It holds off while a window is open or squid is starting or stopping, and installs within a minute of that ending. Until then, the menu and the main window show an Install button. Settings > About turns automatic installs off and links to the releases page.
-
-Squid runs under launchd, so the proxy keeps serving while the app relaunches.
 
 ## Build
 
@@ -46,7 +44,7 @@ git tag v0.2.0
 git push origin v0.2.0
 ```
 
-The Release workflow runs the tests, builds the app, checks that it starts as version 0.2.0 and attaches `SquidManager.dmg` and `SquidManager.zip` to a new GitHub release. The DMG is for first installs. Installed copies download the zip within six hours. The CI workflow runs the tests, the linter and a build on every push to `main` and on pull requests.
+The Release workflow runs the tests, builds the app, checks that it starts as version 0.2.0 and attaches `SquidManager.dmg` and `SquidManager.zip` to a new GitHub release. The CI workflow runs the tests, the linter and a build on every push to `main` and on pull requests.
 
 Xcode is not required, only the Command Line Tools. Keep it that way when changing the UI. In the macOS 27 SDK, `@State` is a macro, and its plugin (`SwiftUIMacros`) ships only with Xcode. Views keep local state in a small `ObservableObject` held by `@StateObject` instead. The same applies to `#Preview`, `@Previewable` and `@Entry`.
 
