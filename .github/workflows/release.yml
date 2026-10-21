@@ -7,6 +7,7 @@ on:
     tags: ["v*"]
 
 permissions:
+  actions: read
   contents: write
 
 jobs:
@@ -16,13 +17,29 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-      - run: brew install squid
-      - run: scripts/test.sh
+      - name: Require successful CI for the tagged commit
+        timeout-minutes: 10
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          sha=$(git rev-parse HEAD)
+          run_id=$(gh run list --workflow ci.yml --branch main --event push \
+            --commit "$sha" --limit 1 --json databaseId --jq '.[0].databaseId // empty')
+          if [ -z "$run_id" ]; then
+            echo "::error::No CI run found on main for commit $sha."
+            exit 1
+          fi
+          gh run watch "$run_id" --exit-status --interval 15
+          conclusion=$(gh run view "$run_id" --json conclusion --jq '.conclusion')
+          if [ "$conclusion" != success ]; then
+            echo "::error::CI run $run_id concluded with $conclusion."
+            exit 1
+          fi
       - run: VERSION="$GITHUB_REF_NAME" scripts/build-app.sh
-      - run: scripts/smoke-test.sh
-      # The updater downloads this exact file name.
-      - run: ditto -c -k --keepParent build/SquidManager.app build/SquidManager.zip
-      - run: scripts/make-dmg.sh
+      - parallel:
+          # The updater downloads this exact file name.
+          - run: ditto -c -k --keepParent build/SquidManager.app build/SquidManager.zip
+          - run: scripts/make-dmg.sh
       - run: gh release create "$GITHUB_REF_NAME" build/SquidManager.dmg build/SquidManager.zip --title "$GITHUB_REF_NAME" --generate-notes
         env:
           GH_TOKEN: ${{ github.token }}

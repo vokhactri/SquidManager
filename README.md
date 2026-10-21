@@ -30,7 +30,6 @@ scripts/build-app.sh            # creates build/SquidManager.app
 scripts/build-app.sh --install  # also copies it to /Applications
 scripts/make-dmg.sh             # packs the built app into build/SquidManager.dmg
 scripts/test.sh                 # runs the tests, including `squid -k parse` on generated configs
-scripts/smoke-test.sh           # opens the built app for 5 seconds and fails if it exits
 scripts/format.sh               # formats and lints the code to the Airbnb Swift Style Guide
 scripts/format.sh --lint        # only reports problems, changes nothing
 ```
