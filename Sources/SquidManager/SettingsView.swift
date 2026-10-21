@@ -204,12 +204,10 @@ private final class SettingsTabsController: NSTabViewController {
 private enum FieldWidth {
   /// Cache sizes such as "512 KB".
   static let short: CGFloat = 80
-  /// Ports, hostnames, addresses and user names.
+  /// Ports, hostnames, addresses, user names and file paths.
   static let medium: CGFloat = 200
   /// The user name and password side by side when adding a proxy user.
   static let credential: CGFloat = 120
-  /// File paths, and the DNS field next to one.
-  static let long: CGFloat = 280
 }
 
 // MARK: - FieldRow
@@ -448,14 +446,14 @@ private struct AdvancedTab: View {
 
   var body: some View {
     Form {
-      FieldRow("squid binary", width: FieldWidth.long) {
+      FieldRow("squid binary", width: FieldWidth.medium) {
         TextField(
           "squid binary",
           text: $squid.settings.squidPath,
           prompt: Text(squid.squidBinary ?? "/opt/homebrew/sbin/squid")
         )
       }
-      FieldRow("DNS servers", width: FieldWidth.long) {
+      FieldRow("DNS servers", width: FieldWidth.medium) {
         TextField("DNS servers", text: $squid.settings.dnsServers, prompt: Text("1.1.1.1 8.8.8.8"))
       }
       Section("Files") {
