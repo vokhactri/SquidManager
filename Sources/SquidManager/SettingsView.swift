@@ -550,15 +550,16 @@ private struct AboutTab: View {
 
       Section {
         Toggle("Install updates automatically", isOn: $updater.installsAutomatically)
-        HStack {
-          status
-          Spacer()
-          if let release = updater.available {
-            Link("Release Notes", destination: release.pageURL)
-            Button("Install and Relaunch") { Task { await updater.install(release) } }
-          } else {
+        switch updater.state {
+        case .available, .installing, .failed:
+          UpdateBanner(updater: updater)
+
+        case .idle, .checking, .upToDate:
+          HStack {
+            status
+            Spacer()
             Button("Check Now") { Task { await updater.check() } }
-              .disabled(updater.state == .checking || updater.state == .installing)
+              .disabled(updater.state == .checking)
           }
         }
       } header: {
@@ -589,16 +590,8 @@ private struct AboutTab: View {
     case .upToDate:
       Text("SquidManager is up to date")
 
-    case .available(let release):
-      Text("Version \(release.displayVersion) is available")
-
-    case .installing:
-      HStack { ProgressView().controlSize(.small)
-        Text("Installing…")
-      }
-
-    case .failed(let message):
-      Text(message).foregroundStyle(.red).textSelection(.enabled)
+    case .available, .installing, .failed:
+      EmptyView()
     }
   }
 }

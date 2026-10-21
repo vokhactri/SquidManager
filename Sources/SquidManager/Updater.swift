@@ -135,6 +135,7 @@ final class Updater: ObservableObject {
   /// Checks for a release the user asked about, so failures are shown.
   func check() async {
     guard state != .checking, state != .installing else { return }
+    attemptedRelease = nil
     state = .checking
     do {
       let latest = try await Self.fetchLatest()
@@ -147,12 +148,21 @@ final class Updater: ObservableObject {
   /// Installs `release`, then quits and opens the new copy.
   func install(_ release: GitHubRelease, relaunchInBackground: Bool = false) async {
     guard state != .installing else { return }
+    attemptedRelease = release
     state = .installing
     do {
       let app = try await Self.install(release)
       relaunch(app, inBackground: relaunchInBackground)
     } catch {
       state = .failed(error.localizedDescription)
+    }
+  }
+
+  func retry() async {
+    if let attemptedRelease {
+      await install(attemptedRelease)
+    } else {
+      await check()
     }
   }
 
@@ -163,6 +173,7 @@ final class Updater: ObservableObject {
   private static let checkInterval: TimeInterval = 6 * 60 * 60
 
   private var timer: Timer?
+  private var attemptedRelease: GitHubRelease?
   private var lastCheck = Date.distantPast
 
   private func tick() async {

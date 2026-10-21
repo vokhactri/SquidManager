@@ -53,17 +53,7 @@ struct StatusView: View {
         .background(.blue.opacity(0.12), in: RoundedRectangle(cornerRadius: 8))
       }
 
-      if let release = updater.available {
-        HStack {
-          Image(systemName: "arrow.down.circle")
-          Text("SquidManager \(release.displayVersion) is available.")
-          Link("Release Notes", destination: release.pageURL)
-          Spacer()
-          Button("Install and Relaunch") { Task { await updater.install(release) } }
-        }
-        .padding(10)
-        .background(.blue.opacity(0.12), in: RoundedRectangle(cornerRadius: 8))
-      }
+      UpdateBanner(updater: updater)
 
       if let error = squid.lastError {
         VStack(alignment: .leading, spacing: 6) {
