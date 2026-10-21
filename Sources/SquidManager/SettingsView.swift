@@ -300,10 +300,12 @@ private struct CacheTab: View {
         TextField("Largest object on disk", text: $squid.settings.maxObjectSize)
         TextField("Memory cache", text: $squid.settings.memoryCacheSize)
         TextField("Largest object in memory", text: $squid.settings.memoryMaxObjectSize)
-      }
-      Section {
-        Button("Flush Cache") { Task { await squid.flushCache() } }
-          .disabled(squid.activity != nil)
+      } footer: {
+        HStack {
+          Spacer()
+          Button("Flush Cache") { Task { await squid.flushCache() } }
+            .disabled(squid.activity != nil)
+        }
       }
     }
     .formStyle(.grouped)
@@ -322,10 +324,12 @@ private struct TemplateTab: View {
           .font(.system(.body, design: .monospaced))
           .scrollContentBackground(.hidden)
           .frame(height: 320)
-      }
-      Section {
-        Button("Reset to Default") { squid.settings.template = SquidConfig.defaultTemplate }
-          .disabled(squid.settings.template == SquidConfig.defaultTemplate)
+      } footer: {
+        HStack {
+          Spacer()
+          Button("Reset to Default") { squid.settings.template = SquidConfig.defaultTemplate }
+            .disabled(squid.settings.template == SquidConfig.defaultTemplate)
+        }
       }
     }
     .formStyle(.grouped)
