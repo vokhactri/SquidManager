@@ -42,19 +42,6 @@ enum SettingsTab: String, CaseIterable {
     case .about: "info.circle"
     }
   }
-
-  /// Grouped Forms scroll, so they have no fitting height to size the window from. Each tab gets a fixed one.
-  fileprivate var contentHeight: CGFloat {
-    switch self {
-    case .general: 362
-    case .access: 520
-    case .parent: 440
-    case .cache: 320
-    case .template: 443
-    case .advanced: 320
-    case .about: 420
-    }
-  }
 }
 
 // MARK: - SettingsView
@@ -70,16 +57,18 @@ struct SettingsView: View {
 
   var body: some View {
     VStack(spacing: 0) {
-      SettingsTabs(selection: $tab, squid: squid, updater: updater)
-        .frame(height: tab.contentHeight)
+      SettingsTabs(selection: $tab, heights: heights, squid: squid, updater: updater)
+        .frame(height: heights.values[tab] ?? 400)
       if squid.needsRestart {
+        Divider()
         HStack {
           Text("Changes take effect after squid restarts.").foregroundStyle(.secondary)
           Spacer()
           Button("Restart Squid") { Task { await squid.restart() } }
             .disabled(squid.activity != nil)
         }
-        .padding(12)
+        .padding(.horizontal, 20)
+        .padding(.vertical, 12)
       }
     }
     .frame(width: 580)
@@ -89,6 +78,7 @@ struct SettingsView: View {
   // MARK: Private
 
   @AppStorage(SettingsTab.defaultsKey) private var tab = SettingsTab.general
+  @StateObject private var heights = TabHeights()
 }
 
 // MARK: - SettingsTabs
@@ -100,6 +90,7 @@ private struct SettingsTabs: NSViewControllerRepresentable {
 
   @Binding var selection: SettingsTab
 
+  let heights: TabHeights
   let squid: SquidController
   let updater: Updater
 
@@ -126,6 +117,11 @@ private struct SettingsTabs: NSViewControllerRepresentable {
 
   private func item(_ tab: SettingsTab) -> NSTabViewItem {
     let controller = NSHostingController(rootView: content(tab)
+      .onScrollGeometryChange(for: CGFloat.self) { geometry in
+        geometry.contentSize.height + geometry.contentInsets.top + geometry.contentInsets.bottom
+      } action: { _, height in
+        heights.values[tab] = height
+      }
       .environmentObject(squid)
       .environmentObject(updater))
     // SettingsView owns the window size. The hosting controller would otherwise push its own size constraints.
@@ -149,6 +145,13 @@ private struct SettingsTabs: NSViewControllerRepresentable {
     case .about: AboutTab()
     }
   }
+}
+
+// MARK: - TabHeights
+
+/// Each tab's Form content height, measured once the tab loads, so the window fits the tab without scrolling.
+private final class TabHeights: ObservableObject {
+  @Published var values = [SettingsTab: CGFloat]()
 }
 
 // MARK: - SettingsTabsController
@@ -336,7 +339,7 @@ private struct TemplateTab: View {
         TextEditor(text: $squid.settings.template)
           .font(.system(.body, design: .monospaced))
           .scrollContentBackground(.hidden)
-          .frame(height: 250)
+          .frame(height: 320)
       } footer: {
         Text("squid.conf is generated from this template. Placeholders like %HTTP_PORT% come from the other tabs.")
           .font(.caption).foregroundStyle(.secondary)
