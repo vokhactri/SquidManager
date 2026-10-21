@@ -181,6 +181,22 @@ private final class SettingsTabsController: NSTabViewController {
   }
 }
 
+// MARK: - SectionButtons
+
+/// Buttons in a grouped Form section footer, right-aligned with the section's box.
+private struct SectionButtons<Content: View>: View {
+  @ViewBuilder let content: Content
+
+  var body: some View {
+    HStack {
+      Spacer()
+      content
+    }
+    // Grouped Forms inset footers to line up with the row text. Undo that so the buttons line up with the box edge.
+    .padding(.trailing, -10)
+  }
+}
+
 // MARK: - GeneralTab
 
 private struct GeneralTab: View {
@@ -308,8 +324,7 @@ private struct CacheTab: View {
         TextField("Memory cache", text: $squid.settings.memoryCacheSize)
         TextField("Largest object in memory", text: $squid.settings.memoryMaxObjectSize)
       } footer: {
-        HStack {
-          Spacer()
+        SectionButtons {
           Button("Flush Cache") { Task { await squid.flushCache() } }
             .disabled(squid.activity != nil)
         }
@@ -332,8 +347,7 @@ private struct TemplateTab: View {
           .scrollContentBackground(.hidden)
           .frame(height: 320)
       } footer: {
-        HStack {
-          Spacer()
+        SectionButtons {
           Button("Reset to Default") { squid.settings.template = SquidConfig.defaultTemplate }
             .disabled(squid.settings.template == SquidConfig.defaultTemplate)
         }
