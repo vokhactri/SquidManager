@@ -23,18 +23,12 @@ struct SettingsView: View {
   // MARK: Internal
 
   @EnvironmentObject var squid: SquidController
+  @EnvironmentObject var updater: Updater
 
   var body: some View {
     VStack(spacing: 0) {
-      TabView(selection: $tab) {
-        GeneralTab().tabItem { Label("General", systemImage: "gearshape") }.tag(SettingsTab.general)
-        AccessTab().tabItem { Label("Access", systemImage: "person.2") }.tag(SettingsTab.access)
-        ParentTab().tabItem { Label("Parent", systemImage: "arrow.up.forward.circle") }.tag(SettingsTab.parent)
-        CacheTab().tabItem { Label("Cache", systemImage: "internaldrive") }.tag(SettingsTab.cache)
-        TemplateTab().tabItem { Label("Template", systemImage: "doc.text") }.tag(SettingsTab.template)
-        AdvancedTab().tabItem { Label("Advanced", systemImage: "wrench.and.screwdriver") }.tag(SettingsTab.advanced)
-        AboutTab().tabItem { Label("About", systemImage: "info.circle") }.tag(SettingsTab.about)
-      }
+      SettingsTabs(selection: $tab, squid: squid, updater: updater)
+        .frame(height: tab.contentHeight)
       if squid.needsRestart {
         HStack {
           Text("Changes take effect after squid restarts.").foregroundStyle(.secondary)
@@ -52,6 +46,100 @@ struct SettingsView: View {
   // MARK: Private
 
   @AppStorage(SettingsTab.defaultsKey) private var tab = SettingsTab.general
+}
+
+// MARK: - SettingsTabs
+
+private struct SettingsTabs: NSViewControllerRepresentable {
+
+  // MARK: Internal
+
+  @Binding var selection: SettingsTab
+
+  let squid: SquidController
+  let updater: Updater
+
+  func makeNSViewController(context _: Context) -> SettingsTabsController {
+    let controller = SettingsTabsController()
+    controller.tabStyle = .toolbar
+    controller.transitionOptions = []
+    controller.tabViewItems = [
+      item(.general, title: "General", image: "gearshape", content: GeneralTab()),
+      item(.access, title: "Access", image: "person.2", content: AccessTab()),
+      item(.parent, title: "Parent", image: "arrow.up.forward.circle", content: ParentTab()),
+      item(.cache, title: "Cache", image: "internaldrive", content: CacheTab()),
+      item(.template, title: "Template", image: "doc.text", content: TemplateTab()),
+      item(.advanced, title: "Advanced", image: "wrench.and.screwdriver", content: AdvancedTab()),
+      item(.about, title: "About", image: "info.circle", content: AboutTab()),
+    ]
+    controller.selectedTabViewItemIndex = controller.tabViewItems
+      .firstIndex { $0.identifier as? String == selection.rawValue } ?? 0
+    controller.selectionDidChange = { tab in
+      if selection != tab { selection = tab }
+    }
+    return controller
+  }
+
+  func updateNSViewController(_ controller: SettingsTabsController, context _: Context) {
+    controller.selectionDidChange = { tab in
+      if selection != tab { selection = tab }
+    }
+    let index = controller.tabViewItems.firstIndex { $0.identifier as? String == selection.rawValue } ?? 0
+    if controller.selectedTabViewItemIndex != index {
+      controller.selectedTabViewItemIndex = index
+    }
+  }
+
+  // MARK: Private
+
+  private func item(_ tab: SettingsTab, title: String, image: String, content: some View) -> NSTabViewItem {
+    let controller = NSHostingController(rootView: content
+      .environmentObject(squid)
+      .environmentObject(updater)
+      .frame(width: 580, height: tab.contentHeight))
+    controller.title = title
+    let item = NSTabViewItem(viewController: controller)
+    item.identifier = tab.rawValue
+    item.label = title
+    item.image = NSImage(systemSymbolName: image, accessibilityDescription: title)
+    return item
+  }
+}
+
+// MARK: - SettingsTabsController
+
+private final class SettingsTabsController: NSTabViewController {
+  var selectionDidChange: ((SettingsTab) -> Void)?
+
+  override func viewDidAppear() {
+    super.viewDidAppear()
+    guard let window = view.window else { return }
+    window.toolbarStyle = .preference
+    window.titlebarSeparatorStyle = .line
+    window.title = tabView.selectedTabViewItem?.label ?? "Settings"
+  }
+
+  override func tabView(_ tabView: NSTabView, didSelect tabViewItem: NSTabViewItem?) {
+    super.tabView(tabView, didSelect: tabViewItem)
+    view.window?.title = tabViewItem?.label ?? "Settings"
+    if let rawValue = tabViewItem?.identifier as? String, let tab = SettingsTab(rawValue: rawValue) {
+      selectionDidChange?(tab)
+    }
+  }
+}
+
+extension SettingsTab {
+  fileprivate var contentHeight: CGFloat {
+    switch self {
+    case .general: 362
+    case .access: 520
+    case .parent: 440
+    case .cache: 320
+    case .template: 443
+    case .advanced: 320
+    case .about: 420
+    }
+  }
 }
 
 // MARK: - GeneralTab
