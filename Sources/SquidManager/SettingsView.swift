@@ -166,8 +166,15 @@ private final class SettingsTabsController: NSTabViewController {
     view.window?.titlebarSeparatorStyle = .line
   }
 
+  override func viewDidAppear() {
+    super.viewDidAppear()
+    view.window?.makeFirstResponder(nil)
+  }
+
   override func tabView(_ tabView: NSTabView, didSelect tabViewItem: NSTabViewItem?) {
     super.tabView(tabView, didSelect: tabViewItem)
+    // NSTabView focuses the first text field of the new tab and selects its text. Leave nothing focused instead.
+    tabView.window?.makeFirstResponder(nil)
     if let rawValue = tabViewItem?.identifier as? String, let tab = SettingsTab(rawValue: rawValue) {
       selectionDidChange?(tab)
     }
