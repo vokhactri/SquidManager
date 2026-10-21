@@ -191,8 +191,10 @@ private struct SectionButtons<Content: View>: View {
       Spacer()
       content
     }
-    // Grouped Forms inset footers to line up with the row text. Undo that so the buttons line up with the box edge.
+    // Grouped Forms put footers 10pt in from the box edge and 10pt below it. Line the buttons up with the box edge,
+    // and give them the same 20pt above as the Form leaves below them.
     .padding(.trailing, -10)
+    .padding(.top, 10)
   }
 }
 
