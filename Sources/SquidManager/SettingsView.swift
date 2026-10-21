@@ -174,6 +174,8 @@ private final class SettingsTabsController: NSTabViewController {
     super.tabView(tabView, didSelect: tabViewItem)
     // NSTabView focuses the first text field of the new tab and selects its text. Leave nothing focused instead.
     tabView.window?.makeFirstResponder(nil)
+    // Loading the view selects the first tab before the saved one. Only report selections made once it's on screen.
+    guard tabView.window != nil else { return }
     if let rawValue = tabViewItem?.identifier as? String, let tab = SettingsTab(rawValue: rawValue) {
       selectionDidChange?(tab)
     }
