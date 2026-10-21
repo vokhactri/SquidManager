@@ -192,13 +192,6 @@ private struct GeneralTab: View {
           get: { squid.opensAtLogin },
           set: { squid.opensAtLogin = $0 }
         ))
-      } footer: {
-        Text("""
-          Squid runs as a launchd agent. It starts again after a crash and at every login \
-          until you press Stop, whether or not this app is open. Keeping the Mac awake stops \
-          idle sleep only. Closing a laptop lid still sleeps the Mac unless it has power and an external display.
-          """)
-        .font(.caption).foregroundStyle(.secondary)
       }
     }
     .formStyle(.grouped)
@@ -219,9 +212,6 @@ private struct AccessTab: View {
         StringListEditor(items: $squid.settings.allowedClients, placeholder: "192.168.1.0/24")
       } header: {
         Text("Clients allowed without a password")
-      } footer: {
-        Text("A host (100.64.1.2), a subnet (10.0.0.0/8) or \"all\". localhost is always allowed.")
-          .font(.caption).foregroundStyle(.secondary)
       }
 
       Section {
@@ -241,9 +231,6 @@ private struct AccessTab: View {
         if let error = form.error { Text(error).foregroundStyle(.red).font(.caption) }
       } header: {
         Text("Proxy users")
-      } footer: {
-        Text("Clients in the list above skip the password. Adding or removing users takes effect without a restart.")
-          .font(.caption).foregroundStyle(.secondary)
       }
     }
     .formStyle(.grouped)
@@ -313,11 +300,6 @@ private struct CacheTab: View {
         TextField("Largest object on disk", text: $squid.settings.maxObjectSize)
         TextField("Memory cache", text: $squid.settings.memoryCacheSize)
         TextField("Largest object in memory", text: $squid.settings.memoryMaxObjectSize)
-      } footer: {
-        Text(
-          "0 MB turns caching off, which is what you want for a plain residential proxy. Sizes use squid units such as \"4 MB\" or \"512 KB\"."
-        )
-        .font(.caption).foregroundStyle(.secondary)
       }
       Section {
         Button("Flush Cache") { Task { await squid.flushCache() } }
@@ -340,9 +322,6 @@ private struct TemplateTab: View {
           .font(.system(.body, design: .monospaced))
           .scrollContentBackground(.hidden)
           .frame(height: 320)
-      } footer: {
-        Text("squid.conf is generated from this template. Placeholders like %HTTP_PORT% come from the other tabs.")
-          .font(.caption).foregroundStyle(.secondary)
       }
       Section {
         Button("Reset to Default") { squid.settings.template = SquidConfig.defaultTemplate }
