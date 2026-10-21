@@ -200,15 +200,15 @@ private final class SettingsTabsController: NSTabViewController {
 
 // MARK: - FieldWidth
 
-/// Text field widths sized to what goes in them.
+/// Text field widths sized to what goes in them. Fields in one group share a width so they line up.
 private enum FieldWidth {
-  /// Ports and sizes such as "512 KB".
+  /// Cache sizes such as "512 KB".
   static let short: CGFloat = 80
-  /// Hostnames, addresses and user names.
+  /// Ports, hostnames, addresses and user names.
   static let medium: CGFloat = 200
   /// The user name and password side by side when adding a proxy user.
   static let credential: CGFloat = 120
-  /// File paths.
+  /// File paths, and the DNS field next to one.
   static let long: CGFloat = 280
 }
 
@@ -258,14 +258,14 @@ private struct GeneralTab: View {
 
   var body: some View {
     Form {
-      FieldRow("HTTP port", width: FieldWidth.short) {
+      FieldRow("HTTP port", width: FieldWidth.medium) {
         TextField("HTTP port", value: $squid.settings.port, format: .number.grouping(.never))
       }
       FieldRow("Listen address", width: FieldWidth.medium) {
-        TextField("Listen address", text: $squid.settings.listenAddress, prompt: Text("All interfaces"))
+        TextField("Listen address", text: $squid.settings.listenAddress, prompt: Text("0.0.0.0"))
       }
       FieldRow("Visible hostname", width: FieldWidth.medium) {
-        TextField("Visible hostname", text: $squid.settings.visibleHostname, prompt: Text("This Mac's hostname"))
+        TextField("Visible hostname", text: $squid.settings.visibleHostname, prompt: Text(squid.defaultHostname))
       }
       Section {
         Toggle("Hide proxy headers (Via, X-Forwarded-For, Cache-Control)", isOn: $squid.settings.anonymize)
@@ -363,16 +363,16 @@ private struct ParentTab: View {
       Toggle("Forward requests through a parent proxy", isOn: $squid.settings.useParent)
       Group {
         FieldRow("Host", width: FieldWidth.medium) {
-          TextField("Host", text: $squid.settings.parentHost)
+          TextField("Host", text: $squid.settings.parentHost, prompt: Text("proxy.example.com"))
         }
-        FieldRow("Port", width: FieldWidth.short) {
+        FieldRow("Port", width: FieldWidth.medium) {
           TextField("Port", value: $squid.settings.parentPort, format: .number.grouping(.never))
         }
         FieldRow("User", width: FieldWidth.medium) {
-          TextField("User", text: $squid.settings.parentUser, prompt: Text("Optional"))
+          TextField("User", text: $squid.settings.parentUser)
         }
         FieldRow("Password", width: FieldWidth.medium) {
-          SecureField("Password", text: $squid.settings.parentPassword, prompt: Text("Optional"))
+          SecureField("Password", text: $squid.settings.parentPassword)
         }
         Section("Go direct for these hosts and domains") {
           StringListEditor(items: $squid.settings.directHosts, placeholder: ".example.com")
@@ -455,8 +455,8 @@ private struct AdvancedTab: View {
           prompt: Text(squid.squidBinary ?? "/opt/homebrew/sbin/squid")
         )
       }
-      FieldRow("DNS servers", width: FieldWidth.medium) {
-        TextField("DNS servers", text: $squid.settings.dnsServers, prompt: Text("System default"))
+      FieldRow("DNS servers", width: FieldWidth.long) {
+        TextField("DNS servers", text: $squid.settings.dnsServers, prompt: Text("1.1.1.1 8.8.8.8"))
       }
       Section("Files") {
         fileRow("Config and users", squid.paths.root)

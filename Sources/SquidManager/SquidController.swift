@@ -105,6 +105,12 @@ final class SquidController: ObservableObject {
     }
   }
 
+  /// The visible hostname squid uses when the setting is empty.
+  var defaultHostname: String {
+    let host = ProcessInfo.processInfo.hostName.filter { !$0.isWhitespace }
+    return host.isEmpty ? "localhost" : host
+  }
+
   /// `/opt/homebrew/Cellar/squid/7.7/sbin/squid` gives `7.7`.
   static func homebrewVersion(_ path: String) -> String? {
     let parts = path.split(separator: "/")
@@ -163,10 +169,9 @@ final class SquidController: ObservableObject {
   @discardableResult
   func writeConfig() throws -> URL {
     try createDirectories()
-    let host = ProcessInfo.processInfo.hostName.filter { !$0.isWhitespace }
     let conf = try SquidConfig.build(settings, .init(
       paths: paths,
-      hostname: host.isEmpty ? "localhost" : host,
+      hostname: defaultHostname,
       authHelper: authHelper
     ))
     try writePrivate(conf, to: paths.config)
