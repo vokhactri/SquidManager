@@ -331,19 +331,22 @@ private struct TemplateTab: View {
   @EnvironmentObject var squid: SquidController
 
   var body: some View {
-    VStack(alignment: .leading) {
-      Text("squid.conf is generated from this template. Placeholders like %HTTP_PORT% come from the other tabs.")
-        .font(.caption).foregroundStyle(.secondary)
-      TextEditor(text: $squid.settings.template)
-        .font(.system(.body, design: .monospaced))
-        .frame(maxHeight: .infinity)
-      HStack {
+    Form {
+      Section {
+        TextEditor(text: $squid.settings.template)
+          .font(.system(.body, design: .monospaced))
+          .scrollContentBackground(.hidden)
+          .frame(height: 250)
+      } footer: {
+        Text("squid.conf is generated from this template. Placeholders like %HTTP_PORT% come from the other tabs.")
+          .font(.caption).foregroundStyle(.secondary)
+      }
+      Section {
         Button("Reset to Default") { squid.settings.template = SquidConfig.defaultTemplate }
           .disabled(squid.settings.template == SquidConfig.defaultTemplate)
-        Spacer()
       }
     }
-    .padding()
+    .formStyle(.grouped)
   }
 }
 
